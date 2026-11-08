@@ -1,7 +1,8 @@
 * { box-sizing: border-box }
 html, body { margin: 0; height: 100%; background: transparent; }
-body { padding: clamp(8px, 2vw, 32px); color: var(--fg); font: var(--size)/1.45 var(--font); }
-main { background: var(--bg); border-radius: clamp(8px, 1vw, 20px); overflow: hidden; height: 100%; display: flex; flex-direction: column; }
+body { overflow: hidden; color: var(--fg); font: var(--size)/1.45 var(--font); }
+#stage { padding: var(--margin); transform-origin: top left; }
+main { background: var(--bg); border-radius: var(--radius); overflow: hidden; height: 100%; display: flex; flex-direction: column; }
 header { display: flex; align-items: center; gap: 1em; padding: .6em var(--pad); background: #ffffff09; border-bottom: 1px solid #ffffff24; }
 #title { text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
 #harness, #prompt, .prefix { color: var(--accent); }

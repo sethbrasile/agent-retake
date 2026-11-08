@@ -42,7 +42,8 @@ def parser():
 def execute(args):
     if args.command == "align":
         from .align import align_file
-        align_file(args.board, args.audio, args.model_dir)
+        for result in align_file(args.board, args.audio, args.model_dir):
+            print(result)
         print(args.board)
     elif args.command == "render":
         from .render.page import compile_board
@@ -70,7 +71,13 @@ def execute(args):
         if not conv.sessions:
             raise ValueError("no sessions gathered")
         atomic(args.out / "sessions.json", conv.model_dump_json(indent=2) + "\n")
-        lines = [f"{s.harness} {s.id}: {len(s.messages)} messages" for s in conv.sessions]
+        lines = []
+        for session in conv.sessions:
+            lines.append(f"{session.harness} {session.id}: {len(session.messages)} messages")
+            prompts = [m for m in session.messages if m.canonical and m.role == "user" and m.kind == "text"]
+            for message in prompts[:3]:
+                preview = " ".join(message.text.split())[:120]
+                lines.append(f"  {message.id}  {preview}")
         atomic(args.out / "summary.md", "\n".join(lines) + "\n")
         print(args.out / "sessions.json")
 
@@ -78,9 +85,8 @@ def execute(args):
 def main(argv=None):
     try:
         execute(parser().parse_args(argv))
-    except ValidationError as err:
-        locations = ["/".join(map(str, x["loc"])) for x in err.errors()]
-        print("retake: invalid field(s): " + ", ".join(locations), file=sys.stderr)
+    except ValidationError:
+        print("retake: invalid data; check field names, types and required values", file=sys.stderr)
         return 2
     except (ValueError, OSError) as err:
         print(f"retake: {err}", file=sys.stderr)

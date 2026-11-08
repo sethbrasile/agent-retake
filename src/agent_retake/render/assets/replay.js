@@ -1,4 +1,4 @@
-const {timeline, theme, controls} = JSON.parse(document.querySelector("#data").textContent);
+const {timeline, theme, controls, size} = JSON.parse(document.querySelector("#data").textContent);
 const root = document.documentElement;
 const viewport = document.querySelector("#viewport");
 const lines = document.querySelector("#lines");
@@ -61,4 +61,17 @@ const slider = document.querySelector("#time");
 slider.max = timeline.duration;
 slider.oninput = () => seek(slider.value);
 document.querySelector("#controls").hidden = !controls;
+const stage = document.querySelector("#stage");
+stage.style.width = size.width+"px";
+stage.style.height = size.height+"px";
+stage.style.setProperty("--margin", Math.min(32,Math.max(8,size.width*0.02))+"px");
+stage.style.setProperty("--radius", Math.min(20,Math.max(8,size.width*0.01))+"px");
+if (controls) {
+    const fit = () => {
+        const height = innerHeight-document.querySelector("#controls").offsetHeight;
+        stage.style.transform = "scale("+Math.min(innerWidth/size.width,height/size.height)+")";
+    };
+    fit();
+    window.addEventListener("resize",fit);
+}
 seek(0);

@@ -78,3 +78,63 @@ def test_trim_after_redaction_keeps_original_out(episode):
     review_board(episode)
     text = prepare_scene(episode).beats[0].shots[0].text
     assert text == "editor-"
+
+
+def test_new_theme_string_invalidates_review_and_is_sanitized(episode):
+    from agent_retake.render.page import compile_board, page_html
+    secret = "sk-proj-INVENTED000001"
+    scan_board(episode)
+    review_board(episode)
+    (episode.parent / "retake.yaml").write_text("themes:\n  neutral:\n    glyphs:\n      claude: " + secret)
+    with pytest.raises(ValueError):
+        compile_board(episode)
+    scan_board(episode)
+    review_board(episode)
+    b = load_board(episode)
+    b.beats[0].start, b.beats[0].end = 0.0, 20.0
+    save_board(b, episode)
+    beats, _, theme = compile_board(episode)
+    assert secret not in page_html(beats[0][1], theme, controls=True)
+
+
+def test_changed_selection_requires_review(episode):
+    scan_board(episode)
+    review_board(episode)
+    b = load_board(episode)
+    b.beats[0].shots = b.beats[0].shots[1:]
+    save_board(b, episode)
+    with pytest.raises(ValueError, match="review"):
+        prepare_scene(episode)
+
+
+def test_keep_cannot_override_nested_replacement(episode):
+    from agent_retake.scan import sidecar_values
+    scan_board(episode)
+    b = load_board(episode)
+    values = sidecar_values(episode, b)
+    rule = next(r for r in b.redactions.rules if values[r.id]=="person@example.org")
+    rule.replace, rule.keep, rule.reason = None, True, "public email"
+    save_board(b, episode)
+    with pytest.raises(ValueError):
+        review_board(episode)
+
+
+def test_invalid_rule_and_field_never_echo_literals(episode,capsys):
+    from agent_retake.cli import main
+    secret = "sk-proj-INVENTED000001"
+    scan_board(episode)
+    b = load_board(episode)
+    b.redactions.rules[0].id = secret
+    save_board(b, episode)
+    assert main(["scan",str(episode),"--review"]) != 0
+    assert secret not in capsys.readouterr().err
+    with episode.open("a") as f:
+        f.write(secret + ": true\n")
+    assert main(["preview",str(episode),"--beat","1","--html"]) != 0
+    assert secret not in capsys.readouterr().err
+
+
+def test_condensed_preserves_headers_lists_and_one_sentence_per_paragraph():
+    from agent_retake.scene import condensed
+    text = "**Outcome**\nWe tested\nthe idea. Another sentence.\n\n- A result. Extra.\n- B result."
+    assert condensed(text) == "**Outcome**\nWe tested the idea.\n- A result.\n- B result."

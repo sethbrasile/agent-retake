@@ -1,9 +1,7 @@
 from pathlib import Path
-import shutil
 import subprocess
 import sys
 
-import pytest
 
 from agent_retake.cli import main
 from agent_retake.storyboard import load_board, save_board

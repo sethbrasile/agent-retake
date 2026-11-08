@@ -47,7 +47,10 @@ def digest(value: bytes) -> str:
 
 
 def time_value(value: str):
-    dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    try:
+        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        raise ValueError("invalid ISO timestamp") from None
     return dt.astimezone(timezone.utc) if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
 
 
@@ -69,6 +72,7 @@ class Messages:
         self.namespace = namespace
         self.counts = Counter()
         self.calls = {}
+        self.emitted = []
 
     def add(self, role, kind, text, *, native=None, time=None, tool="", call=None,
             parent=None, canonical=True) -> Message:
@@ -84,11 +88,12 @@ class Messages:
                       text=text, tool=tool, timestamp=time, call_id=call,
                       parent_id=parent, canonical=canonical)
         self.session.messages.append(msg)
+        self.emitted.append(msg)
         if kind == "call" and call:
             self.calls[call] = msg.id
         return msg
 
     def link(self):
-        for msg in self.session.messages:
+        for msg in self.emitted:
             if msg.kind == "result":
                 msg.parent_id = self.calls.get(msg.call_id, msg.parent_id)

@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import re
 
 from .scan import load_inputs, validate
-from .storyboard import load_board, select
+from .storyboard import Theme, effective, load_config, load_board, select
 
 
 @dataclass(frozen=True)
@@ -26,21 +26,32 @@ class SafeBeat:
 @dataclass(frozen=True)
 class SafeScene:
     beats: list[SafeBeat]
+    theme: Theme
 
 
 def condensed(text):
-    parts = []
-    for line in text.splitlines():
-        line = line.strip()
-        if line:
-            parts.append(re.split(r"(?<=[.!?])\s+", line, maxsplit=1)[0])
-    return "\n".join(parts)
+    blocks = []
+    paragraph = []
+    for raw in [*text.splitlines(), ""]:
+        line = raw.strip()
+        structural = re.match(r"^(?:#{1,6} |\*\*|[-*+] |\d+[.)] )", line)
+        if not line or structural:
+            if paragraph:
+                blocks.append(" ".join(paragraph))
+                paragraph.clear()
+            if line:
+                blocks.append(line)
+        else:
+            paragraph.append(line)
+    return "\n".join(re.split(r"(?<=[.!?])\s+", block, maxsplit=1)[0] for block in blocks)
 
 
-def prepare_scene(path) -> SafeScene:
-    board = load_board(path)
+def prepare_scene(path, *, board=None, theme=None) -> SafeScene:
+    board = board or load_board(path)
+    if theme is None:
+        _, theme = effective(board, load_config(path))
     conv, signature = load_inputs(board, path.parent)
-    mapping, _ = validate(path, board, conv, signature, require_review=True)
+    mapping, _ = validate(path, board, conv, signature, require_review=True, theme=theme)
     pattern = re.compile("|".join(map(re.escape, sorted(mapping, key=len, reverse=True)))) if mapping else None
 
     def clean(text):
@@ -83,4 +94,9 @@ def prepare_scene(path) -> SafeScene:
                     text = condensed(text)
             shots.append(SafeShot(shot.show, owner.harness, text, [clean(v) for v in shot.highlight]))
         beats.append(SafeBeat(beat.id, clean(beat.title), beat.start, beat.end, shots))
-    return SafeScene(beats)
+    safe_theme = theme.model_copy(update={
+        "font": clean(theme.font), "foreground": clean(theme.foreground), "background": clean(theme.background),
+        "accents": {k: clean(v) for k, v in theme.accents.items()},
+        "glyphs": {k: clean(v) for k, v in theme.glyphs.items()},
+    })
+    return SafeScene(beats, safe_theme)

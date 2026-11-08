@@ -50,3 +50,35 @@ def test_malformed_payload_has_safe_error(tmp_path, family):
             gather([p])
         except ValueError as err:
             assert "invented-private-text" not in str(err)
+
+
+def test_appending_codex_mirror_preserves_event_id(tmp_path):
+    path = tmp_path / "old.jsonl"
+    first = (FIX/"codex/demo.jsonl").read_text().splitlines()[0]
+    event = {"type":"event_msg","timestamp":"2026-01-01T01:01:00Z","payload":{"type":"user_message","message":"Hello"}}
+    path.write_text(first+"\n"+json.dumps(event)+"\n")
+    old = gather([path]).sessions[0].messages
+    new = tmp_path / "new.jsonl"
+    item = {"type":"response_item","timestamp":"2026-01-01T01:01:01Z","payload":{"id":"native","type":"message","role":"user","content":[{"type":"input_text","text":"Hello"}]}}
+    new.write_text(path.read_text()+json.dumps(item)+"\n")
+    assert [m.id for m in gather([new]).sessions[0].messages] == [old[0].id]
+    assert len(gather([new,path]).sessions[0].messages) == 1
+
+
+def test_old_pi_copy_and_latest_branch(tmp_path):
+    p = FIX/"pi/demo.jsonl"
+    old = tmp_path/"tree.jsonl"
+    old.write_text("\n".join(p.read_text().splitlines()[:3]))
+    assert gather([p,old]) == gather([p])
+
+
+def test_child_reused_call_id_does_not_reparent_main(tmp_path):
+    p = tmp_path/"demo.jsonl"
+    p.write_bytes((FIX/"claude/demo.jsonl").read_bytes())
+    child = tmp_path/"demo/subagents/agent-child.jsonl"
+    child.parent.mkdir(parents=True)
+    child.write_bytes(p.read_bytes())
+    with pytest.warns(UserWarning, match="Unlinked"):
+        messages = gather([p]).sessions[0].messages
+    assert messages[2].parent_id == messages[1].id
+    assert messages[6].parent_id == messages[5].id

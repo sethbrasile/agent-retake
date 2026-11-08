@@ -27,22 +27,23 @@ def output_lock(directory):
         os.close(fd)
 
 
-def filename(pattern, beat, take, preview):
+def filename(pattern, beat, take, preview, label):
     for _, field, fmt, conv in string.Formatter().parse(pattern):
         if field is None:
             continue
         if (field not in {"beat", "shot", "take"} or conv or
                 not re.fullmatch(r"(?:0?[1-9]\d?d)?", fmt) or field == "shot" and fmt):
             raise ValueError("unsupported output filename field or format")
-    name = pattern.format(beat=beat, take=take, shot="agentreplay")
+    name = pattern.format(beat=beat, take=take, shot=label)
     if Path(name).name != name or not name.endswith(".mov") or name.startswith("."):
         raise ValueError("output name must be a MOV filename within the output directory")
     return name[:-4] + ("-preview.mov" if preview else ".mov")
 
 
-def reserve(pattern, ident, directory, taken, preview, full):
+def reserve(output, ident, directory, taken, preview, full):
+    pattern = output.name
     for take in range(1, 10000):
-        name = filename(pattern, ident, take, preview)
+        name = filename(pattern, ident, take, preview, output.shot)
         names = [name]
         if full:
             names.append(name[:-4] + "-4k.mov")
@@ -55,7 +56,7 @@ def reserve(pattern, ident, directory, taken, preview, full):
 
 
 def record(page, timeline, theme, output, path, scale):
-    page.set_content(page_html(timeline, theme))
+    page.set_content(page_html(timeline, theme, window=output.window))
     page.evaluate("document.fonts.ready")
     count = frames(timeline.duration, output.fps)
     with tempfile.TemporaryFile() as log, subprocess.Popen(
@@ -91,7 +92,7 @@ def export(board_path, compiled, *, preview=False):
     with output_lock(directory), tempfile.TemporaryDirectory(dir=directory) as tmp:
         stage = Path(tmp)
         used = set()
-        jobs = [(ident, time, reserve(output.name, ident, directory, used, preview, full))
+        jobs = [(ident, time, reserve(output, ident, directory, used, preview, full))
                 for ident, time in timelines]
         try:
             with sync_playwright() as pw:

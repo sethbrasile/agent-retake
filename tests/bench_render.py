@@ -1,6 +1,5 @@
 """Run the reference workstation's 20-second benchmark through the installed CLI."""
 import json
-import os
 from pathlib import Path
 import subprocess
 import tempfile

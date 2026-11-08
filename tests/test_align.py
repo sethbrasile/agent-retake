@@ -1,6 +1,7 @@
 import pytest
 from agent_retake.align import Word, match_cues
 from agent_retake.storyboard import Beat
+from test_scan import episode
 
 
 def beat(ident, cue, **kwargs):
@@ -31,6 +32,3 @@ def test_failed_align_preserves_board(episode, monkeypatch):
     with pytest.raises(ValueError):
         align.align_file(episode, None, None)
     assert episode.read_bytes() == original
-
-
-from test_scan import episode

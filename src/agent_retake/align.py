@@ -61,7 +61,7 @@ def candidates(tokens, cue, first):
     return distinct, best
 
 
-def match_cues(beats, words, duration):
+def match_cues(beats, words, duration, *, report=None):
     words = [w for w in words if normalize(w.text)]
     tokens = [normalize(w.text) for w in words]
     cursor, starts, errors = 0, [], []
@@ -71,6 +71,8 @@ def match_cues(beats, words, duration):
                 errors.append(f"beat {beat.id}: invalid manual interval")
                 continue
             starts.append(beat.start)
+            if report is not None:
+                report.append(f"Beat {beat.id}: manual start {beat.start:.2f}s")
             while cursor < len(words) and words[cursor].start < beat.end:
                 cursor += 1
             continue
@@ -86,6 +88,8 @@ def match_cues(beats, words, duration):
             continue
         hit, = hits
         starts.append(words[hit.first].start)
+        if report is not None:
+            report.append(f"Beat {beat.id}: start {starts[-1]:.2f}s, cue confidence {hit.score:.2f}")
         cursor = hit.stop
     if errors:
         raise ValueError("\n".join(errors))
@@ -102,7 +106,9 @@ def match_cues(beats, words, duration):
 def align_file(path, audio, model_dir):
     board = load_board(path)
     words, duration = transcribe_words(audio, model_dir)
-    intervals = match_cues(board.beats, words, duration)
+    report = []
+    intervals = match_cues(board.beats, words, duration, report=report)
     for beat, (start, end) in zip(board.beats, intervals, strict=True):
         beat.start, beat.end = start, end
     save_board(board, path)
+    return report

@@ -45,3 +45,18 @@ def test_identical_prompts_without_ids_remain_distinct(tmp_path):
     p.write_text((json.dumps(row) + "\n") * 2)
     messages = gather([p]).sessions[0].messages
     assert len({m.id for m in messages}) == 2
+
+
+def test_duplicate_native_record_is_not_a_duplicate_turn(tmp_path):
+    p = tmp_path / "dup.jsonl"
+    raw = DEMO.read_text()
+    p.write_text(raw + raw.splitlines()[0] + "\n")
+    assert len(gather([p]).sessions[0].messages) == 4
+
+
+def test_invalid_session_time_does_not_echo_raw_data(tmp_path):
+    p = tmp_path / "time.jsonl"
+    p.write_text(DEMO.read_text().replace("2026-01-01T00:00:00Z","private-value"))
+    with pytest.raises(ValueError) as err:
+        gather([p])
+    assert "private-value" not in str(err.value)

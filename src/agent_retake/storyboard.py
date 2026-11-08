@@ -17,6 +17,7 @@ class Window(Record):
 class Output(Record):
     dir: str = "footage"
     name: str = "{beat:02d}-{shot}-{take:02d}.mov"
+    shot: str = "retake"
     fps: int = Field(default=30, ge=1, le=120)
     window: Window = Field(default_factory=Window)
     full_frame: bool = False
@@ -33,8 +34,8 @@ class Theme(Record):
     condensed_wpm: float = Field(default=250, gt=0, allow_inf_nan=False)
     burst_seconds: float = Field(default=1.5, gt=0, allow_inf_nan=False)
     tail: float = Field(default=2, ge=0, allow_inf_nan=False)
-    accents: dict[str, str] = Field(default_factory=dict)
-    glyphs: dict[str, str] = Field(default_factory=dict)
+    accents: dict[Literal["claude", "codex", "pi", "grok"], str] = Field(default_factory=dict)
+    glyphs: dict[Literal["claude", "codex", "pi", "grok"], str] = Field(default_factory=dict)
 
 
 class Shot(Record):
@@ -141,8 +142,7 @@ def load_board(path: Path) -> Storyboard:
     try:
         board = Storyboard.model_validate(read_yaml(path))
     except ValidationError as err:
-        locations = ["/".join(map(str, issue["loc"])) for issue in err.errors()]
-        raise ValueError("invalid storyboard field(s): " + ", ".join(locations)) from None
+        raise ValueError("invalid storyboard: check field names, types and required values") from None
     ids = [b.id for b in board.beats]
     if len(ids) != len(set(ids)):
         raise ValueError("beat IDs must be unique")

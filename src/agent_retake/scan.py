@@ -1,14 +1,14 @@
 """Private literal inventory and reproducible evidence of operator review."""
+import os
 import ipaddress
 import json
 import re
-from pathlib import Path
 
 from .io import atomic
 from .model import Conversation, digest, encoded
-from .storyboard import Review, Rule, load_board, save_board
+from .storyboard import Review, Rule, load_board, save_board, effective, load_config
 
-VERSION = 1
+VERSION = 2
 PATTERNS = {
     "API key": r"\b(?:sk-(?:proj-|ant-)?|gh[pousr]_|github_pat_|xox[baprs]-|AKIA|ASIA)[A-Za-z0-9_-]{12,}",
     "email": r"[\w.+%-]+@(?:[\w-]+\.)+[\w-]+",
@@ -84,8 +84,9 @@ def visible(board):
             *(h for b in board.beats for shot in b.shots for h in shot.highlight)]
 
 
-def inventory(board, conv):
-    strings = visible(board)
+def inventory(board, conv, theme):
+    strings = [*visible(board), theme.foreground, theme.background, theme.font,
+               *theme.glyphs.values(), *theme.accents.values()]
     for s in conv.sessions:
         strings.extend([s.cwd, s.id])
         for m in s.messages:
@@ -106,7 +107,8 @@ def sidecar_values(path, board):
 def scan_board(path):
     board = load_board(path)
     conv, signature = load_inputs(board, path.parent)
-    hits = inventory(board, conv)
+    _, theme = effective(board, load_config(path))
+    hits = inventory(board, conv, theme)
     old = sidecar_values(path, board)
     decisions = {}
     for rule in board.redactions.rules:
@@ -132,31 +134,32 @@ def scan_board(path):
     data = encoded({finding_id(v): v for v in hits})
     sidecar = (path.parent / board.sessions[0]).parent / ("retake-redactions-" + digest(data.encode())[:20] + ".json")
     atomic(sidecar, data)
-    import os
     board.redactions = Review(scan_version=VERSION, sessions_sha256=signature, rules=rules,
                               sidecar=os.path.relpath(sidecar, path.parent), reviewed=False)
     save_board(board, path)
 
 
-def binding(board, mapping):
+def binding(board, mapping, theme):
     review = board.redactions
     return digest(encoded([review.scan_version, review.sessions_sha256, board.sessions,
-                           visible(board), [r.model_dump() for r in review.rules], mapping]).encode())
+                           visible(board), theme.model_dump(),
+                           [[b.id, [s.model_dump() for s in b.shots]] for b in board.beats],
+                           [r.model_dump() for r in review.rules], mapping]).encode())
 
 
-def validate(path, board, conv, signature, *, require_review):
+def validate(path, board, conv, signature, *, require_review, theme):
     review = board.redactions
     if review.scan_version != VERSION or review.sessions_sha256 != signature:
         raise ValueError("missing or stale scan; run retake scan again")
     private = sidecar_values(path, board)
-    expected = inventory(board, conv)
+    expected = inventory(board, conv, theme)
     missing = {**dict.fromkeys(private.values()), **expected}
     mapping = {}
     errors = []
-    for rule in review.rules:
+    for index, rule in enumerate(review.rules, 1):
         value = rule.match or private.get(rule.id)
         if not value or (rule.id and rule.id != finding_id(value)) or value in mapping:
-            errors.append(rule.id or "unnamed rule")
+            errors.append(f"rule {index}")
             continue
         missing.pop(value, None)
         if not rule.reason.strip() or rule.keep == (rule.replace is not None) or rule.replace == "":
@@ -164,13 +167,15 @@ def validate(path, board, conv, signature, *, require_review):
         mapping[value] = value if rule.keep else rule.replace
     errors.extend(finding_id(v) for v in missing)
     for value, new in mapping.items():
+        if new == value and any(k != value and k in value and v != k for k, v in mapping.items()):
+            errors.append(finding_id(value))
         if new != value and new and any(key in new for key in mapping):
             errors.append(finding_id(value))
         if new == value and not any(r.keep and (r.match or private.get(r.id)) == value for r in review.rules):
             errors.append(finding_id(value))
     if errors:
         raise ValueError("unresolved or conflicting redaction rules: " + ", ".join(sorted(set(errors))))
-    stamp = binding(board, mapping)
+    stamp = binding(board, mapping, theme)
     if require_review and (not review.reviewed or stamp != review.review_sha256):
         raise ValueError("redaction review required; inspect rules and run retake scan BOARD --review")
     return mapping, stamp
@@ -179,7 +184,8 @@ def validate(path, board, conv, signature, *, require_review):
 def review_board(path):
     board = load_board(path)
     conv, signature = load_inputs(board, path.parent)
-    _, stamp = validate(path, board, conv, signature, require_review=False)
+    _, theme = effective(board, load_config(path))
+    _, stamp = validate(path, board, conv, signature, require_review=False, theme=theme)
     board.redactions.review_sha256 = stamp
     board.redactions.reviewed = True
     save_board(board, path)

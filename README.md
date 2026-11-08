@@ -56,7 +56,7 @@ Gather reads explicit files, transcript directories or sessions recorded for a p
 
 Each beat has a title, a cue, start/end seconds, and shots. A shot can type a prompt (`typed`), show tool names and counts (`burst`), stream a reply (`full`), show headings and short excerpts (`condensed`), or hold text (`still`). Add a `highlight` list to emphasize phrases. To trim one message, supply `span: [start, stop]` as zero-based character offsets into its redacted text, with an exclusive stop. If a beat exceeds readable speed, shorten it or split it.
 
-The scan proposes replacements for identifiers and secret-shaped strings. Read the private sidecar and add editorial rules for sensitive material that needs human judgment. Retake checks the session bytes, decisions and visible storyboard text before making a preview or a clip. These checks enforce the review you record. The agent and operator decide which content may appear.
+The scan proposes replacements for identifiers and secret-shaped strings. Read the private sidecar and add editorial rules for sensitive material that needs human judgment. Retake checks the session bytes, decisions, selected shots and visible theme and storyboard text before making a preview or a clip. These checks enforce the review you record. The agent and operator decide which content may appear.
 
 Keep the normalized sessions, summaries, private rules, previews, audio and footage outside the public checkout. A storyboard can itself disclose a cue, title, highlight, inline rule or private path. Review those before sharing it. The bundled fixtures are invented.
 
@@ -75,7 +75,7 @@ Each cue starts its beat at the matched word. The next cue ends the preceding be
 
 ## Configure an episode
 
-Put `retake.yaml` beside the storyboard. It supplies project defaults for the theme and output. Explicit storyboard fields override those defaults. The CLI's `--beat` selection limits which clips are exported. The sample config sets the palette, font, dimensions and filename template. [Example configuration](examples/retake.yaml)
+Put `retake.yaml` beside the storyboard. It supplies project defaults for the theme and output. Explicit storyboard fields override those defaults. The CLI's `--beat` selection limits which clips are exported. Set `output.shot` to the shot label your editor uses. The sample config sets the palette, font, dimensions and filename template. [Example configuration](examples/retake.yaml)
 
 Set `output.full_frame: true` to also export an opaque 3840×2160 DNxHR HQ MOV. `output.background` accepts a hex color or local PNG, JPEG or WebP path relative to the storyboard. Each render uses an available take number; it preserves existing clips. The transparent window is suitable for placement, scaling and transitions in the editor.
 

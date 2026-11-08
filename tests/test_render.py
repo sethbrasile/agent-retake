@@ -1,7 +1,5 @@
 import json
-import os
 import subprocess
-from pathlib import Path
 
 import pytest
 
@@ -50,7 +48,7 @@ def test_failure_keeps_previous_take(small, monkeypatch):
     from agent_retake.render import capture
     out = small.parent / "footage"
     out.mkdir()
-    first = out / "01-agentreplay-01.mov"
+    first = out / "01-retake-01.mov"
     first.write_bytes(b"keep")
     monkeypatch.setattr(capture, "record", lambda *args: (_ for _ in ()).throw(ValueError("encoder failed")))
     assert main(["render", str(small)]) != 0
@@ -76,3 +74,42 @@ def test_concurrent_output_refusal(tmp_path):
         with pytest.raises(ValueError, match="another render"):
             with output_lock(tmp_path):
                 pass
+
+
+def pixels(path, fmt, capture_filter=None):
+    args = ["ffmpeg", "-v", "error", "-i", str(path)]
+    if capture_filter:
+        args += ["-vf", capture_filter]
+    return subprocess.check_output([*args, "-pix_fmt", fmt, "-frames:v", "1", "-f", "rawvideo", "-"])
+
+
+def test_partial_edge_composites_against_light_and_dark(small):
+    from agent_retake.render.encode import composite
+    (small.parent / "retake.yaml").write_text('themes: {neutral: {background: "#c8c8c8"}}')
+    scan_board(small)
+    review_board(small)
+    assert main(["render", str(small)]) == 0
+    overlay, = (small.parent / "footage").glob("*.mov")
+    alpha = pixels(overlay, "gray", "alphaextract")
+    rgb = pixels(overlay, "rgb24")
+    pos = next(i for i,v in enumerate(alpha) if i//320 > 220 and 75 < v < 180)
+    # Opaque neighboring pixels give the terminal color, independent of RGB
+    # stored at the partially transparent corner.
+    color = rgb[(220*320+155)*3:(220*320+155)*3+3]
+    for back in (0, 255):
+        output = load_board(small).output
+        output.background = "#000000" if not back else "#ffffff"
+        full = small.parent / f"composite-{back}.mov"
+        composite(overlay, full, output, 1, small.parent)
+        # Crop the centered window from the actual opaque delivery codec.
+        raw = pixels(full, "rgb24", "crop=320:240:1760:960")
+        for channel, foreground in enumerate(color):
+            expected = (foreground*alpha[pos] + back*(255-alpha[pos]))/255
+            assert abs(raw[pos*3+channel] - expected) < 10
+
+
+def test_project_selects_shot_label_without_pipeline_defaults():
+    from agent_retake.render.capture import filename
+    output = Output()
+    assert output.shot == "retake"
+    assert filename(output.name, 2, 3, False, "research") == "02-research-03.mov"

@@ -70,6 +70,7 @@ def gather(inputs, *, since=None, until=None, keywords=()) -> Conversation:
                     if metadata_matches(f, dirs):
                         direct.add(f)
     sessions = {}
+    ranks = {}
     for f in sorted(direct):
         module = adapter(f)
         if module is None:
@@ -90,17 +91,31 @@ def gather(inputs, *, since=None, until=None, keywords=()) -> Conversation:
                 continue
         if keywords and not all(any(k.casefold() in m.text.casefold() for m in s.messages) for k in keywords):
             continue
+        unique = {}
+        for message in s.messages:
+            duplicate = unique.get(message.id)
+            if duplicate is not None and duplicate != message:
+                raise ValueError(f"{f.name}: conflicting records for one message ID")
+            unique[message.id] = message
+        s.messages = list(unique.values())
         key = (s.harness, s.id)
+        rank = (len(s.messages), f.stat().st_size)
         previous = sessions.get(key)
         if previous:
-            merged = {m.id: m for m in previous.messages}
-            for m in s.messages:
-                if m.id in merged and merged[m.id] != m:
-                    raise ValueError(f"{f.name}: conflicting copies of a message")
-                merged[m.id] = m
-            previous.messages = list(merged.values())
+            latest, older = (s, previous) if rank > ranks[key] else (previous, s)
+            known = {m.id: m for m in latest.messages}
+            for m in older.messages:
+                if m.id in known:
+                    skip = {"canonical", "timestamp"}
+                    if m.model_dump(exclude=skip) != known[m.id].model_dump(exclude=skip):
+                        raise ValueError(f"{f.name}: conflicting copies of a message")
+                else:
+                    known[m.id] = m.model_copy(update={"canonical": False}) if s.harness == "pi" else m
+            latest.messages = list(known.values())
+            sessions[key] = latest
         else:
             sessions[key] = s
+        ranks[key] = max(rank, ranks.get(key, rank))
     if not sessions:
         warnings.warn("No matching sessions. Check the inputs and filters.")
     ordered = sorted(sessions.values(), key=lambda s: (

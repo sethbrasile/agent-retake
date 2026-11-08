@@ -42,3 +42,33 @@ def test_html_seeks_in_both_directions(timed):
         assert not page.evaluate("window.bad")
         assert "</script>" in page.locator("#title").inner_text()
         browser.close()
+
+
+def test_overlapping_intervals_fail_preflight(timed):
+    from agent_retake.render.page import compile_board
+    data=load_board(timed)
+    second=data.beats[0].model_copy(deep=True)
+    second.id=2
+    second.start=1
+    second.end=18
+    data.beats.append(second)
+    save_board(data,timed)
+    scan_board(timed)
+    review_board(timed)
+    with pytest.raises(ValueError,match="overlap|order"):
+        compile_board(timed)
+
+
+def test_html_preview_uses_export_canvas_size(timed):
+    review_board(timed)
+    assert main(["preview", str(timed), "--beat", "1", "--html"]) == 0
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch()
+        page = browser.new_page(viewport={"width":800, "height":650})
+        page.goto(next((timed.parent / "footage").glob("*.html")).as_uri())
+        page.evaluate("seek(12)")
+        layout = page.locator("#viewport").evaluate("(el) => [el.clientWidth,el.scrollHeight]")
+        page.set_viewport_size({"width":1050, "height":700})
+        assert page.locator("#viewport").evaluate("(el) => [el.clientWidth,el.scrollHeight]") == layout
+        assert layout[0] > 1800
+        browser.close()
