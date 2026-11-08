@@ -66,3 +66,15 @@ def test_detectors():
     found = find_hits(values)
     for value in values:
         assert value in found
+
+
+def test_trim_after_redaction_keeps_original_out(episode):
+    from agent_retake.storyboard import Shot
+    b = load_board(episode)
+    base = b.beats[0].shots[-1]
+    b.beats[0].shots = [Shot(message=base.message, show="still", span=[8, 15])]
+    save_board(b, episode)
+    scan_board(episode)
+    review_board(episode)
+    text = prepare_scene(episode).beats[0].shots[0].text
+    assert text == "editor-"

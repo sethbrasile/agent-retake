@@ -40,6 +40,7 @@ class Theme(Record):
 class Shot(Record):
     message: str
     show: Literal["typed", "burst", "full", "condensed", "still"]
+    span: list[int] | None = Field(default=None, min_length=2, max_length=2)
     highlight: list[str] = Field(default_factory=list)
 
 

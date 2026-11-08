@@ -56,6 +56,8 @@ def prepare_scene(path) -> SafeScene:
             except ValueError as err:
                 raise ValueError(f"beat {beat.id} shot {i}: {err}") from None
             owner = owners[msgs[0].id]
+            if shot.span and (len(msgs) != 1 or shot.show == "burst"):
+                raise ValueError(f"beat {beat.id} shot {i}: a trim requires one text message")
             if shot.show == "burst":
                 included = {m.id for m in msgs}
                 # Recursively fold children only when their parent call is selected.
@@ -72,6 +74,11 @@ def prepare_scene(path) -> SafeScene:
                 text = "\n".join(f"{name} × {n}" for name, n in counts.items()) or "Tool activity"
             else:
                 text = "\n".join(clean(m.text) for m in msgs)
+                if shot.span:
+                    start, stop = shot.span
+                    if not 0 <= start < stop <= len(text):
+                        raise ValueError(f"beat {beat.id} shot {i}: trim outside reviewed text")
+                    text = text[start:stop]
                 if shot.show == "condensed":
                     text = condensed(text)
             shots.append(SafeShot(shot.show, owner.harness, text, [clean(v) for v in shot.highlight]))

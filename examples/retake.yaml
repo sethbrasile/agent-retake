@@ -1,0 +1,15 @@
+theme: orchard
+themes:
+  orchard:
+    background: "#18201c"
+    foreground: "#ecede7"
+    font: monospace
+    size: 28
+    accents:
+      claude: "#e5b482"
+output:
+  dir: footage
+  name: "{beat:02d}-{shot}-{take:02d}.mov"
+  fps: 30
+  window: {width: 1920, height: 1200}
+  full_frame: false
