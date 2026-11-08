@@ -22,11 +22,18 @@ def parser():
     init = sub.add_parser("init", help="Start a storyboard with one beat per user turn")
     init.add_argument("sessions", type=Path)
     init.add_argument("--out", type=Path, required=True)
+    scan = cmds.add_parser("scan", help="Find sensitive strings or record reviewed decisions")
+    scan.add_argument("board", type=Path)
+    scan.add_argument("--review", action="store_true")
     return root
 
 
 def execute(args):
-    if args.command == "storyboard":
+    if args.command == "scan":
+        from .scan import review_board, scan_board
+        (review_board if args.review else scan_board)(args.board)
+        print(args.board)
+    elif args.command == "storyboard":
         initialize(args.sessions, args.out)
         print(args.out)
     elif args.command == "gather":
