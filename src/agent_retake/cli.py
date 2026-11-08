@@ -25,11 +25,24 @@ def parser():
     scan = cmds.add_parser("scan", help="Find sensitive strings or record reviewed decisions")
     scan.add_argument("board", type=Path)
     scan.add_argument("--review", action="store_true")
+    preview = cmds.add_parser("preview", help="Preview one reviewed beat")
+    preview.add_argument("board", type=Path)
+    preview.add_argument("--beat", type=int, required=True)
+    preview.add_argument("--html", action="store_true")
     return root
 
 
 def execute(args):
-    if args.command == "scan":
+    if args.command == "preview":
+        from .render.page import preview_html, compile_board
+        if args.html:
+            print(preview_html(args.board, args.beat))
+        else:
+            compiled = compile_board(args.board, args.beat)
+            from .render.capture import export
+            for clip in export(args.board, compiled, preview=True):
+                print(clip)
+    elif args.command == "scan":
         from .scan import review_board, scan_board
         (review_board if args.review else scan_board)(args.board)
         print(args.board)

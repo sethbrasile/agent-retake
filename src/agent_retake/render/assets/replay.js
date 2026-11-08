@@ -1,0 +1,64 @@
+const {timeline, theme, controls} = JSON.parse(document.querySelector("#data").textContent);
+const root = document.documentElement;
+const viewport = document.querySelector("#viewport");
+const lines = document.querySelector("#lines");
+const palette = {claude:"#eea986", codex:"#9bdacc", pi:"#c4adfb", grok:"#d0d8e8", ...theme.accents};
+const glyphs = {claude:"❯", codex:"›", pi:"π", grok:"›", ...theme.glyphs};
+const names = {claude:"Claude Code", codex:"Codex", pi:"pi", grok:"Grok Build"};
+for (const [key, value] of Object.entries({fg:theme.foreground, bg:theme.background,
+    pad:theme.padding+"px", font:theme.font, size:theme.size+"px"})) root.style.setProperty("--"+key, value);
+document.querySelector("#title").textContent = timeline.title;
+
+function appendHighlighted(node, value, highlights) {
+    let rest = value;
+    while (rest) {
+        const matches = highlights.filter(h => h && rest.includes(h))
+            .sort((a,b) => rest.indexOf(a)-rest.indexOf(b) || b.length-a.length);
+        if (!matches.length) { node.append(rest); break; }
+        const match = matches[0], offset = rest.indexOf(match);
+        node.append(rest.slice(0,offset));
+        const mark = document.createElement("mark");
+        mark.textContent = match;
+        node.append(mark);
+        rest = rest.slice(offset+match.length);
+    }
+}
+
+function seek(time) {
+    const t = Math.min(timeline.duration, Math.max(0, Number(time)));
+    lines.replaceChildren();
+    let active = timeline.shots[0].shot.harness;
+    for (const {shot,start,end} of timeline.shots) {
+        if (t <= start) break;
+        active = shot.harness;
+        const pct = Math.min(1,(t-start)/(end-start));
+        let value = shot.text;
+        if (shot.mode === "burst" || shot.mode === "condensed") {
+            const rows = value.split("\n");
+            value = rows.slice(0,Math.ceil(rows.length*pct)).join("\n");
+        } else if (shot.mode !== "still") {
+            const chars = Array.from(value);
+            value = chars.slice(0,Math.floor(chars.length*pct)).join("");
+        }
+        const item = document.createElement("div");
+        item.className = "line";
+        const prefix = document.createElement("span");
+        prefix.className = "prefix";
+        prefix.textContent = (shot.mode === "typed" ? glyphs[active] : "•") + " ";
+        item.append(prefix);
+        appendHighlighted(item, value, shot.highlights);
+        lines.append(item);
+    }
+    document.querySelector("#prompt").textContent = glyphs[active] + " ▏";
+    document.querySelector("#harness").textContent = names[active];
+    root.style.setProperty("--accent",palette[active]);
+    viewport.scrollTop = viewport.scrollHeight;
+    document.querySelector("#seconds").textContent = t.toFixed(2) + " s";
+    document.querySelector("#time").value = t;
+}
+window.seek = seek;
+const slider = document.querySelector("#time");
+slider.max = timeline.duration;
+slider.oninput = () => seek(slider.value);
+document.querySelector("#controls").hidden = !controls;
+seek(0);
