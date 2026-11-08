@@ -29,11 +29,19 @@ def parser():
     preview.add_argument("board", type=Path)
     preview.add_argument("--beat", type=int, required=True)
     preview.add_argument("--html", action="store_true")
+    render = cmds.add_parser("render", help="Export reviewed beats in timeline order")
+    render.add_argument("board", type=Path)
+    render.add_argument("--beat", type=int)
     return root
 
 
 def execute(args):
-    if args.command == "preview":
+    if args.command == "render":
+        from .render.page import compile_board
+        from .render.capture import export
+        for clip in export(args.board, compile_board(args.board, args.beat)):
+            print(clip)
+    elif args.command == "preview":
         from .render.page import preview_html, compile_board
         if args.html:
             print(preview_html(args.board, args.beat))
