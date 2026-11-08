@@ -1,0 +1,2 @@
+{"method":"session/update","timestamp":"2026-01-01T03:00:02Z","params":{"update":{"sessionUpdate":"agent_message_chunk","content":{"type":"text","text":"Cold "}}}}
+{"method":"session/update","timestamp":"2026-01-01T03:00:03Z","params":{"update":{"sessionUpdate":"agent_message_chunk","content":{"type":"text","text":"weather."}}}}

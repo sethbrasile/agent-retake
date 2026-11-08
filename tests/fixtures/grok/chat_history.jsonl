@@ -1,0 +1,3 @@
+{"type":"user","content":"Why did the yield fall?"}
+{"type":"assistant","id":"ans","content":[{"type":"output_text","text":"Cold weather."}],"tool_calls":[{"id":"c","name":"search","arguments":"{}"}]}
+{"type":"tool_result","tool_call_id":"c","content":"Synthetic report"}

@@ -1,0 +1,12 @@
+{"type":"session_meta","timestamp":"2026-01-01T01:00:00Z","payload":{"id":"roll","cwd":"/synthetic/orchard"}}
+{"type":"turn_context","payload":{"turn_id":"one"}}
+{"type":"event_msg","payload":{"type":"user_message","message":"Check the frost."}}
+{"type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"Check the frost."}]}}
+{"type":"response_item","payload":{"type":"function_call","name":"search","call_id":"a","arguments":"{}"}}
+{"type":"response_item","payload":{"type":"custom_tool_call","name":"read","call_id":"b","input":"table"}}
+{"type":"response_item","payload":{"type":"custom_tool_call_output","call_id":"b","output":"Table"}}
+{"type":"response_item","payload":{"type":"function_call_output","call_id":"a","output":"Frost"}}
+{"type":"event_msg","payload":{"type":"agent_message","message":"A late frost."}}
+{"type":"response_item","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"A late frost."}]}}
+{"type":"turn_context","payload":{"turn_id":"two"}}
+{"type":"event_msg","payload":{"type":"user_message","message":"Try again."}}
