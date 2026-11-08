@@ -32,11 +32,19 @@ def parser():
     render = cmds.add_parser("render", help="Export reviewed beats in timeline order")
     render.add_argument("board", type=Path)
     render.add_argument("--beat", type=int)
+    align = cmds.add_parser("align", help="Time beats to locally transcribed narration")
+    align.add_argument("board", type=Path)
+    align.add_argument("--audio", type=Path, required=True)
+    align.add_argument("--model-dir", type=Path, required=True)
     return root
 
 
 def execute(args):
-    if args.command == "render":
+    if args.command == "align":
+        from .align import align_file
+        align_file(args.board, args.audio, args.model_dir)
+        print(args.board)
+    elif args.command == "render":
         from .render.page import compile_board
         from .render.capture import export
         for clip in export(args.board, compile_board(args.board, args.beat)):

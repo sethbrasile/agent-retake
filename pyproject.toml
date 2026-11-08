@@ -7,7 +7,7 @@ license = "MIT"
 dependencies = ["pydantic>=2.12,<3", "PyYAML>=6.0.3,<7", "playwright>=1.59,<2"]
 
 [project.optional-dependencies]
-align = ["faster-whisper>=1.2,<2"]
+align = ["faster-whisper>=1.2,<2", "av<19"]
 
 [project.scripts]
 retake = "agent_retake.cli:main"
