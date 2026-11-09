@@ -29,15 +29,15 @@ function appendHighlighted(node, value, highlights) {
 
 function messageLine(shot, value) {
     const item = document.createElement("div");
-    item.className = shot.mode === "typed" ? "line user-message" : "line";
+    item.className = "line " + shot.role + "-message";
     item.style.setProperty("--accent", palette[shot.harness]);
-    if (shot.mode !== "typed") {
-        const prefix = document.createElement("span");
-        prefix.className = "prefix";
-        prefix.textContent = "• ";
-        item.append(prefix);
-    }
-    appendHighlighted(item, value, shot.highlights);
+    const speaker = document.createElement("span");
+    speaker.className = "speaker";
+    speaker.textContent = {user:"You", assistant:names[shot.harness], tool:"Tool"}[shot.role];
+    const body = document.createElement("span");
+    body.className = "message-text";
+    appendHighlighted(body, value, shot.highlights);
+    item.append(speaker, body);
     return item;
 }
 
@@ -52,7 +52,7 @@ function seek(time) {
     draft.replaceChildren();
     caret.hidden = true;
     let active = timeline.shots[0].shot.harness;
-    const latestPrompt = timeline.shots.findLast(entry => entry.shot.mode === "typed" && entry.start <= t);
+    const latestPrompt = timeline.shots.findLast(entry => entry.shot.role === "user" && entry.start <= t);
     for (const {shot,start,end} of timeline.shots) {
         if (t < start) break;
         active = shot.harness;

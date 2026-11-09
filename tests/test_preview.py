@@ -82,9 +82,9 @@ def test_prompt_composes_at_bottom_then_submits_once():
 
     question = "What changed?"
     timeline = Timeline("Orchard", 8, [
-        TimedShot(SafeShot("typed", "claude", question, []), 0, 2),
-        TimedShot(SafeShot("full", "claude", "A late frost.", []), 2, 4),
-        TimedShot(SafeShot("typed", "claude", "When?", []), 4, 6),
+        TimedShot(SafeShot("typed", "claude", question, [], "user"), 0, 2),
+        TimedShot(SafeShot("full", "claude", "A late frost.", [], "assistant"), 2, 4),
+        TimedShot(SafeShot("typed", "claude", "When?", [], "user"), 4, 6),
     ])
     with sync_playwright() as pw:
         browser = pw.chromium.launch()
@@ -99,16 +99,16 @@ def test_prompt_composes_at_bottom_then_submits_once():
         page.evaluate("seek(1.99)")
         assert draft.inner_text() == question and history.inner_text() == ""
         page.evaluate("seek(2)")
-        assert history.inner_text().strip() == question
+        assert history.locator(".message-text").inner_text() == question
         assert not draft.inner_text()
         assert not page.locator("#caret").is_visible()
         page.evaluate("seek(3)")
         assert history.locator(".line").count() == 2
-        assert history.locator(".line").first.inner_text() == question
+        assert history.locator(".message-text").first.inner_text() == question
         assert "A late" in history.locator(".line").last.inner_text()
         page.evaluate("seek(5)")
         assert history.locator(".earlier").count() == 2
-        assert history.locator(".line").last.inner_text() == "• A late frost."
+        assert history.locator(".message-text").last.inner_text() == "A late frost."
         assert draft.inner_text() == "Whe"
         page.evaluate("seek(3)")
         assert history.locator(".earlier").count() == 0
@@ -142,7 +142,7 @@ def test_reviewed_history_stays_visible_while_composing_the_next_prompt(timed):
         page.set_content(html)
         history = page.locator("#history .line")
         assert history.count() == len(board.beats[0].shots)
-        assert history.first.inner_text() == previous_text
+        assert history.first.locator(".message-text").inner_text() == previous_text
         before = history.all_text_contents()
         for t in (halfway, typing.end, halfway):
             page.evaluate("t => seek(t)", t)
@@ -150,4 +150,39 @@ def test_reviewed_history_stays_visible_while_composing_the_next_prompt(timed):
             assert page.locator("#lines .user-message").count() == int(t >= typing.end)
             assert bool(page.locator("#draft").inner_text()) == (t < typing.end)
         assert 0.5 < page.locator("#history").evaluate("el => +getComputedStyle(el).opacity") < 1
+        browser.close()
+
+
+def test_range_keeps_speakers_and_user_composition_in_current_and_prior_beats(timed):
+    from agent_retake.model import Conversation
+    from agent_retake.render.page import compile_board, page_html
+    from agent_retake.storyboard import Shot
+
+    board = load_board(timed)
+    messages = Conversation.model_validate_json((timed.parent / "sessions.json").read_bytes()).sessions[0].messages
+    first = board.beats[0]
+    first.shots = [Shot(message=f"{messages[0].id}..{messages[-1].id}", show="full")]
+    second = first.model_copy(deep=True)
+    second.id, second.start, second.end = 2, 16.0, 32.0
+    second.shots = [Shot(message=messages[0].id, show="still")]
+    board.beats.append(second)
+    save_board(board, timed)
+    scan_board(timed)
+    review_board(timed)
+    timelines, _, theme = compile_board(timed)
+    (_, first_time), (_, second_time) = timelines
+    assert first_time.shots[0].shot.mode == "typed"
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch()
+        for timeline, container in [(first_time, "#lines"), (second_time, "#history")]:
+            page = browser.new_page()
+            page.set_content(page_html(timeline, theme))
+            if timeline is first_time:
+                page.evaluate("t => seek(t)", first_time.shots[0].end / 2)
+                assert page.locator("#draft").inner_text() and not page.locator("#lines").inner_text()
+            page.evaluate("t => seek(t)", timeline.duration)
+            assert page.locator(container + " .speaker").all_text_contents() == ["You", "Tool", "Tool", "Claude Code"]
+            if timeline is second_time:
+                assert page.locator("#lines .user-message .speaker").inner_text() == "You"
+            page.close()
         browser.close()

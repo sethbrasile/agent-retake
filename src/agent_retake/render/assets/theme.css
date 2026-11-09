@@ -5,14 +5,15 @@ body { overflow: hidden; color: var(--fg); font: var(--size)/1.45 var(--font); }
 main { background: var(--bg); border-radius: var(--radius); overflow: hidden; height: 100%; display: flex; flex-direction: column; }
 header { display: flex; align-items: center; gap: 1em; padding: .6em var(--pad); background: #ffffff09; border-bottom: 1px solid #ffffff24; }
 #title { text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
-#harness, .prefix { color: var(--accent); }
+#harness, .speaker { color: var(--accent); }
 #viewport { flex: 1; min-height: 0; overflow: hidden; padding: var(--pad); }
 #composer { flex: none; margin: 0 var(--pad) .75em; padding: .4em .7em; min-height: 2.3em; max-height: 35%; overflow: hidden; white-space: pre-wrap; overflow-wrap: anywhere; background: #ffffff09; border: 1px solid #ffffff30; border-radius: .4em; }
 #caret:not([hidden]) { display: inline-block; width: .09em; height: 1em; vertical-align: -.12em; background: var(--accent); }
 .user-message { background: #ffffff0d; border-left: .12em solid var(--accent); padding: .25em .6em; }
 .line { white-space: pre-wrap; overflow-wrap: anywhere; margin-bottom: .55em; }
 #history, .earlier { opacity: .72; }
-.prefix { font-weight: bold; }
+.speaker { display: inline-block; margin-right: .7em; font-size: .8em; font-weight: bold; }
+.tool-message .speaker { color: var(--fg); }
 mark { background: #ffdf84; color: #171719; border-radius: .12em; }
 #controls:not([hidden]) { position: fixed; bottom: 0; left: 0; width: 100%; background: #202126; color: #eee; font: 16px monospace; padding: .5em; display: flex; gap: .8em; }
 #time { flex: 1; }

@@ -1,6 +1,7 @@
 """Only these reviewed, presentation-ready records may enter a replay page."""
 from dataclasses import dataclass
 import re
+from typing import Literal
 
 from .scan import load_inputs, validate
 from .storyboard import Theme, effective, load_config, load_board, select
@@ -12,6 +13,7 @@ class SafeShot:
     harness: str
     text: str
     highlights: list[str]
+    role: Literal["user", "assistant", "tool"]
 
 
 @dataclass(frozen=True)
@@ -67,6 +69,7 @@ def prepare_scene(path, *, board=None, theme=None) -> SafeScene:
             except ValueError as err:
                 raise ValueError(f"beat {beat.id} shot {i}: {err}") from None
             owner = owners[msgs[0].id]
+            highlights = [clean(v) for v in shot.highlight]
             if shot.span and (len(msgs) != 1 or shot.show == "burst"):
                 raise ValueError(f"beat {beat.id} shot {i}: a trim requires one text message")
             if shot.show == "burst":
@@ -83,16 +86,22 @@ def prepare_scene(path, *, board=None, theme=None) -> SafeScene:
                         name = clean(m.tool) or "tool"
                         counts[name] = counts.get(name, 0) + 1
                 text = "\n".join(f"{name} × {n}" for name, n in counts.items()) or "Tool activity"
-            else:
-                text = "\n".join(clean(m.text) for m in msgs)
+                shots.append(SafeShot("burst", owner.harness, text, highlights, "tool"))
+                continue
+            for message in msgs:
+                role = message.role if message.kind == "text" else "tool"
+                mode = shot.show
+                if mode in {"typed", "full"}:
+                    mode = "typed" if role == "user" else "full"
+                text = clean(message.text)
                 if shot.span:
                     start, stop = shot.span
                     if not 0 <= start < stop <= len(text):
                         raise ValueError(f"beat {beat.id} shot {i}: trim outside reviewed text")
                     text = text[start:stop]
-                if shot.show == "condensed":
+                if mode == "condensed":
                     text = condensed(text)
-            shots.append(SafeShot(shot.show, owner.harness, text, [clean(v) for v in shot.highlight]))
+                shots.append(SafeShot(mode, owner.harness, text, highlights, role))
         beats.append(SafeBeat(beat.id, clean(beat.title), beat.start, beat.end, shots))
     safe_theme = theme.model_copy(update={
         "font": clean(theme.font), "foreground": clean(theme.foreground), "background": clean(theme.background),
