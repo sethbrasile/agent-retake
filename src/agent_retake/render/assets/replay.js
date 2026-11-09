@@ -2,6 +2,9 @@ const {timeline, theme, controls, size} = JSON.parse(document.querySelector("#da
 const root = document.documentElement;
 const viewport = document.querySelector("#viewport");
 const lines = document.querySelector("#lines");
+const composer = document.querySelector("#composer");
+const draft = document.querySelector("#draft");
+const caret = document.querySelector("#caret");
 const palette = {claude:"#eea986", codex:"#9bdacc", pi:"#c4adfb", grok:"#d0d8e8", ...theme.accents};
 const glyphs = {claude:"❯", codex:"›", pi:"π", grok:"›", ...theme.glyphs};
 const names = {claude:"Claude Code", codex:"Codex", pi:"pi", grok:"Grok Build"};
@@ -27,12 +30,21 @@ function appendHighlighted(node, value, highlights) {
 function seek(time) {
     const t = Math.min(timeline.duration, Math.max(0, Number(time)));
     lines.replaceChildren();
+    draft.replaceChildren();
+    caret.hidden = true;
     let active = timeline.shots[0].shot.harness;
     for (const {shot,start,end} of timeline.shots) {
-        if (t <= start) break;
+        if (t < start) break;
         active = shot.harness;
         const pct = Math.min(1,(t-start)/(end-start));
         let value = shot.text;
+        if (shot.mode === "typed" && t < end) {
+            const chars = Array.from(value);
+            appendHighlighted(draft, chars.slice(0,Math.ceil(chars.length*pct)).join(""), shot.highlights);
+            caret.hidden = false;
+            break;
+        }
+        if (t === start) break;
         if (shot.mode === "burst" || shot.mode === "condensed") {
             const rows = value.split("\n");
             value = rows.slice(0,Math.ceil(rows.length*pct)).join("\n");
@@ -41,18 +53,20 @@ function seek(time) {
             value = chars.slice(0,Math.floor(chars.length*pct)).join("");
         }
         const item = document.createElement("div");
-        item.className = "line";
-        const prefix = document.createElement("span");
-        prefix.className = "prefix";
-        prefix.textContent = (shot.mode === "typed" ? glyphs[active] : "•") + " ";
-        item.append(prefix);
+        item.className = shot.mode === "typed" ? "line user-message" : "line";
+        if (shot.mode !== "typed") {
+            const prefix = document.createElement("span");
+            prefix.className = "prefix";
+            prefix.textContent = "• ";
+            item.append(prefix);
+        }
         appendHighlighted(item, value, shot.highlights);
         lines.append(item);
     }
-    document.querySelector("#prompt").textContent = glyphs[active] + " ▏";
-    document.querySelector("#harness").textContent = names[active];
+    document.querySelector("#harness").textContent = glyphs[active] + " " + names[active];
     root.style.setProperty("--accent",palette[active]);
     viewport.scrollTop = viewport.scrollHeight;
+    composer.scrollTop = composer.scrollHeight;
     document.querySelector("#seconds").textContent = t.toFixed(2) + " s";
     document.querySelector("#time").value = t;
 }

@@ -72,3 +72,39 @@ def test_html_preview_uses_export_canvas_size(timed):
         assert page.locator("#viewport").evaluate("(el) => [el.clientWidth,el.scrollHeight]") == layout
         assert layout[0] > 1800
         browser.close()
+
+
+def test_prompt_composes_at_bottom_then_submits_once():
+    from agent_retake.render.page import page_html
+    from agent_retake.scene import SafeShot
+    from agent_retake.storyboard import Theme
+    from agent_retake.timing import TimedShot, Timeline
+
+    question = "What changed?"
+    timeline = Timeline("Orchard", 6, [
+        TimedShot(SafeShot("typed", "claude", question, []), 0, 2),
+        TimedShot(SafeShot("full", "claude", "A late frost.", []), 2, 4),
+    ])
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch()
+        page = browser.new_page()
+        page.set_content(page_html(timeline, Theme()))
+        history = page.locator("#lines")
+        page.evaluate("seek(1)")
+        assert history.inner_text() == ""
+        draft = page.locator("#draft")
+        assert draft.inner_text() == "What ch"
+        assert draft.bounding_box()["y"] > page.viewport_size["height"] * 0.8
+        page.evaluate("seek(1.99)")
+        assert draft.inner_text() == question and history.inner_text() == ""
+        page.evaluate("seek(2)")
+        assert history.inner_text().strip() == question
+        assert not draft.inner_text()
+        assert not page.locator("#caret").is_visible()
+        page.evaluate("seek(3)")
+        assert history.locator(".line").count() == 2
+        assert history.locator(".line").first.inner_text() == question
+        assert "A late" in history.locator(".line").last.inner_text()
+        page.evaluate("seek(1)")
+        assert history.inner_text() == "" and draft.inner_text() == "What ch"
+        browser.close()
