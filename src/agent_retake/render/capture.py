@@ -97,10 +97,13 @@ def export(board_path, compiled, *, preview=False):
         try:
             with sync_playwright() as pw:
                 browser = pw.chromium.launch()
-                page = browser.new_page(viewport=output.window.model_dump(), device_scale_factor=scale,
-                                        offline=True, service_workers="block")
                 for _, time, names in jobs:
-                    record(page, time, theme, output, stage / names[0], scale)
+                    page = browser.new_page(viewport=output.window.model_dump(), device_scale_factor=scale,
+                                            offline=True, service_workers="block")
+                    try:
+                        record(page, time, theme, output, stage / names[0], scale)
+                    finally:
+                        page.close()
                     if full:
                         composite(stage / names[0], stage / names[1], output,
                                   frames(time.duration, output.fps), board_path.parent)

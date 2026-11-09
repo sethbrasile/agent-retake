@@ -113,3 +113,24 @@ def test_project_selects_shot_label_without_pipeline_defaults():
     output = Output()
     assert output.shot == "retake"
     assert filename(output.name, 2, 3, False, "research") == "02-research-03.mov"
+
+
+def test_second_beat_matches_rendering_it_on_its_own(small):
+    board = load_board(small)
+    second = board.beats[0].model_copy(deep=True)
+    second.id = 2
+    second.title = "The second exchange"
+    second.start, second.end = 3.0, 6.0
+    board.beats.append(second)
+    save_board(board, small)
+    scan_board(small)
+    review_board(small)
+
+    assert main(["render", str(small)]) == 0
+    assert main(["render", str(small), "--beat", "2"]) == 0
+    out = small.parent / "footage"
+    def last_frame(name):
+        return pixels(out / name, "rgba", "select=eq(n\\,11)")
+    expected = last_frame("02-retake-02.mov")
+    assert last_frame("01-retake-01.mov") != expected
+    assert last_frame("02-retake-01.mov") == expected
