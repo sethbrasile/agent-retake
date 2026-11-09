@@ -14,6 +14,7 @@ class SafeShot:
     text: str
     highlights: list[str]
     role: Literal["user", "assistant", "tool"]
+    excerpt: bool = False
 
 
 @dataclass(frozen=True)
@@ -94,14 +95,16 @@ def prepare_scene(path, *, board=None, theme=None) -> SafeScene:
                 if mode in {"typed", "full"}:
                     mode = "typed" if role == "user" else "full"
                 text = clean(message.text)
+                excerpt = False
                 if shot.span:
                     start, stop = shot.span
                     if not 0 <= start < stop <= len(text):
                         raise ValueError(f"beat {beat.id} shot {i}: trim outside reviewed text")
+                    excerpt = start > 0 or stop < len(text)
                     text = text[start:stop]
                 if mode == "condensed":
                     text = condensed(text)
-                shots.append(SafeShot(mode, owner.harness, text, highlights, role))
+                shots.append(SafeShot(mode, owner.harness, text, highlights, role, excerpt))
         beats.append(SafeBeat(beat.id, clean(beat.title), beat.start, beat.end, shots))
     safe_theme = theme.model_copy(update={
         "font": clean(theme.font), "foreground": clean(theme.foreground), "background": clean(theme.background),

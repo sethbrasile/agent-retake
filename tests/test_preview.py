@@ -186,3 +186,28 @@ def test_range_keeps_speakers_and_user_composition_in_current_and_prior_beats(ti
                 assert page.locator("#lines .user-message .speaker").inner_text() == "You"
             page.close()
         browser.close()
+
+
+def test_excerpt_label_is_separate_from_source_words(timed):
+    from agent_retake.render.page import compile_board, page_html
+
+    board = load_board(timed)
+    shot = board.beats[0].shots[0]
+    shot.span = [5, 12]
+    board.beats[0].shots = [shot, shot.model_copy(update={"span": None})]
+    save_board(board, timed)
+    scan_board(timed)
+    review_board(timed)
+    timelines, _, theme = compile_board(timed)
+    timeline = timelines[0][1]
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch()
+        page = browser.new_page()
+        page.set_content(page_html(timeline, theme))
+        page.evaluate("t => seek(t)", timeline.duration)
+        excerpt, whole = page.locator("#lines .line").all()
+        assert excerpt.locator(".message-text").inner_text() == "changed"
+        assert excerpt.locator(".edit-note").count() == 1
+        assert excerpt.locator(".edit-note").inner_text() == "Excerpt"
+        assert whole.locator(".edit-note").count() == 0
+        browser.close()

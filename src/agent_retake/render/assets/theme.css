@@ -13,6 +13,7 @@ header { display: flex; align-items: center; gap: 1em; padding: .6em var(--pad);
 .line { white-space: pre-wrap; overflow-wrap: anywhere; margin-bottom: .55em; }
 #history, .earlier { opacity: .72; }
 .speaker { display: inline-block; margin-right: .7em; font-size: .8em; font-weight: bold; }
+.edit-note { display: inline-block; margin-right: .7em; font-size: .8em; opacity: .8; }
 .tool-message .speaker { color: var(--fg); }
 mark { background: #ffdf84; color: #171719; border-radius: .12em; }
 #controls:not([hidden]) { position: fixed; bottom: 0; left: 0; width: 100%; background: #202126; color: #eee; font: 16px monospace; padding: .5em; display: flex; gap: .8em; }

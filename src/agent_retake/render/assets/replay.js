@@ -37,7 +37,14 @@ function messageLine(shot, value) {
     const body = document.createElement("span");
     body.className = "message-text";
     appendHighlighted(body, value, shot.highlights);
-    item.append(speaker, body);
+    item.append(speaker);
+    if (shot.excerpt || shot.mode === "condensed") {
+        const note = document.createElement("span");
+        note.className = "edit-note";
+        note.textContent = shot.mode === "condensed" ? "Condensed" : "Excerpt";
+        item.append(note);
+    }
+    item.append(body);
     return item;
 }
 
