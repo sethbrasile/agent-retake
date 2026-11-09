@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from .scene import SafeBeat, SafeShot
 from .storyboard import Theme
@@ -16,6 +16,7 @@ class Timeline:
     title: str
     duration: float
     shots: list[TimedShot]
+    history: list[SafeShot] = field(default_factory=list)
 
 
 def minimum(shot, theme):
@@ -30,7 +31,7 @@ def minimum(shot, theme):
     return 0.25
 
 
-def compile_beat(beat: SafeBeat, theme: Theme) -> Timeline:
+def compile_beat(beat: SafeBeat, theme: Theme, *, history=()) -> Timeline:
     if beat.start is None or beat.end is None or beat.end <= beat.start:
         raise ValueError(f"beat {beat.id}: set start and end to a positive interval")
     if not beat.shots:
@@ -47,4 +48,4 @@ def compile_beat(beat: SafeBeat, theme: Theme) -> Timeline:
         end = cursor + length * active / required
         shots.append(TimedShot(shot, cursor, end))
         cursor = end
-    return Timeline(beat.title, duration, shots)
+    return Timeline(beat.title, duration, shots, list(history))

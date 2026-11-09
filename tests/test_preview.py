@@ -81,9 +81,10 @@ def test_prompt_composes_at_bottom_then_submits_once():
     from agent_retake.timing import TimedShot, Timeline
 
     question = "What changed?"
-    timeline = Timeline("Orchard", 6, [
+    timeline = Timeline("Orchard", 8, [
         TimedShot(SafeShot("typed", "claude", question, []), 0, 2),
         TimedShot(SafeShot("full", "claude", "A late frost.", []), 2, 4),
+        TimedShot(SafeShot("typed", "claude", "When?", []), 4, 6),
     ])
     with sync_playwright() as pw:
         browser = pw.chromium.launch()
@@ -105,6 +106,48 @@ def test_prompt_composes_at_bottom_then_submits_once():
         assert history.locator(".line").count() == 2
         assert history.locator(".line").first.inner_text() == question
         assert "A late" in history.locator(".line").last.inner_text()
+        page.evaluate("seek(5)")
+        assert history.locator(".earlier").count() == 2
+        assert history.locator(".line").last.inner_text() == "• A late frost."
+        assert draft.inner_text() == "Whe"
+        page.evaluate("seek(3)")
+        assert history.locator(".earlier").count() == 0
         page.evaluate("seek(1)")
         assert history.inner_text() == "" and draft.inner_text() == "What ch"
+        browser.close()
+
+
+def test_reviewed_history_stays_visible_while_composing_the_next_prompt(timed):
+    from agent_retake.render.page import compile_board, page_html
+
+    board = load_board(timed)
+    second = board.beats[0].model_copy(deep=True)
+    second.id = 2
+    second.start, second.end = 16.0, 32.0
+    board.beats.append(second)
+    save_board(board, timed)
+    scan_board(timed)
+    review_board(timed)
+    timelines, _, theme = compile_board(timed, 2)
+    timeline = timelines[0][1]
+    previous_text = timeline.shots[0].shot.text
+    typing = timeline.shots[0]
+    halfway = (typing.start + typing.end) / 2
+    html = page_html(timeline, theme)
+    assert "person@example.org" not in html
+
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch()
+        page = browser.new_page()
+        page.set_content(html)
+        history = page.locator("#history .line")
+        assert history.count() == len(board.beats[0].shots)
+        assert history.first.inner_text() == previous_text
+        before = history.all_text_contents()
+        for t in (halfway, typing.end, halfway):
+            page.evaluate("t => seek(t)", t)
+            assert history.all_text_contents() == before
+            assert page.locator("#lines .user-message").count() == int(t >= typing.end)
+            assert bool(page.locator("#draft").inner_text()) == (t < typing.end)
+        assert 0.5 < page.locator("#history").evaluate("el => +getComputedStyle(el).opacity") < 1
         browser.close()

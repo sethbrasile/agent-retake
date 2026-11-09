@@ -27,12 +27,32 @@ function appendHighlighted(node, value, highlights) {
     }
 }
 
+function messageLine(shot, value) {
+    const item = document.createElement("div");
+    item.className = shot.mode === "typed" ? "line user-message" : "line";
+    item.style.setProperty("--accent", palette[shot.harness]);
+    if (shot.mode !== "typed") {
+        const prefix = document.createElement("span");
+        prefix.className = "prefix";
+        prefix.textContent = "• ";
+        item.append(prefix);
+    }
+    appendHighlighted(item, value, shot.highlights);
+    return item;
+}
+
+const historyLines = document.querySelector("#history");
+for (const shot of timeline.history) {
+    historyLines.append(messageLine(shot, shot.text));
+}
+
 function seek(time) {
     const t = Math.min(timeline.duration, Math.max(0, Number(time)));
     lines.replaceChildren();
     draft.replaceChildren();
     caret.hidden = true;
     let active = timeline.shots[0].shot.harness;
+    const latestPrompt = timeline.shots.findLast(entry => entry.shot.mode === "typed" && entry.start <= t);
     for (const {shot,start,end} of timeline.shots) {
         if (t < start) break;
         active = shot.harness;
@@ -52,15 +72,8 @@ function seek(time) {
             const chars = Array.from(value);
             value = chars.slice(0,Math.floor(chars.length*pct)).join("");
         }
-        const item = document.createElement("div");
-        item.className = shot.mode === "typed" ? "line user-message" : "line";
-        if (shot.mode !== "typed") {
-            const prefix = document.createElement("span");
-            prefix.className = "prefix";
-            prefix.textContent = "• ";
-            item.append(prefix);
-        }
-        appendHighlighted(item, value, shot.highlights);
+        const item = messageLine(shot, value);
+        if (latestPrompt && start < latestPrompt.start) item.classList.add("earlier");
         lines.append(item);
     }
     document.querySelector("#harness").textContent = glyphs[active] + " " + names[active];

@@ -11,6 +11,7 @@ header { display: flex; align-items: center; gap: 1em; padding: .6em var(--pad);
 #caret:not([hidden]) { display: inline-block; width: .09em; height: 1em; vertical-align: -.12em; background: var(--accent); }
 .user-message { background: #ffffff0d; border-left: .12em solid var(--accent); padding: .25em .6em; }
 .line { white-space: pre-wrap; overflow-wrap: anywhere; margin-bottom: .55em; }
+#history, .earlier { opacity: .72; }
 .prefix { font-weight: bold; }
 mark { background: #ffdf84; color: #171719; border-radius: .12em; }
 #controls:not([hidden]) { position: fixed; bottom: 0; left: 0; width: 100%; background: #202126; color: #eee; font: 16px monospace; padding: .5em; display: flex; gap: .8em; }

@@ -18,7 +18,12 @@ def compile_board(path, beat_id=None):
             if previous_end is not None and b.start < previous_end:
                 raise ValueError(f"beat {b.id}: overlap or beats out of timeline order")
             previous_end = b.end
-    selected = [(b.id, compile_beat(b, theme)) for b in scene.beats if beat_id is None or b.id == beat_id]
+    selected = []
+    history = []
+    for beat in scene.beats:
+        if beat_id is None or beat.id == beat_id:
+            selected.append((beat.id, compile_beat(beat, theme, history=history)))
+        history.extend(beat.shots)
     if not selected:
         raise ValueError("no matching beats to render")
     return selected, output, scene.theme
