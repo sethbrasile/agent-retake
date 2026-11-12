@@ -13,3 +13,18 @@ def test_readable_minimum_and_tail(mode, text, minimum):
     assert timeline.shots[-1].end == pytest.approx(minimum)
     with pytest.raises(ValueError, match="beat 1.*overrun"):
         compile_beat(SafeBeat(1, "Demo", 10, 11 + minimum, [shot]), Theme())
+
+
+def test_beat_hold_overrides_theme_tail():
+    shot = SafeShot("full", "codex", "a" * 400, [], "assistant")
+    timeline = compile_beat(SafeBeat(1, "Demo", 0, 20, [shot], hold=12), Theme(tail=2))
+    assert timeline.shots[-1].end == pytest.approx(8)
+    with pytest.raises(ValueError, match="beat 1.*overrun"):
+        compile_beat(SafeBeat(1, "Demo", 0, 13, [shot], hold=12.9), Theme())
+
+
+def test_storyboard_hold_is_validated():
+    from agent_retake.storyboard import Beat
+    with pytest.raises(ValueError):
+        Beat(id=1, title="Demo", hold=-1, shots=[])
+    assert Beat(id=1, title="Demo", hold=4.5, shots=[]).hold == 4.5

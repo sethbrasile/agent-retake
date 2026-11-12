@@ -37,7 +37,7 @@ def compile_beat(beat: SafeBeat, theme: Theme, *, history=()) -> Timeline:
     if not beat.shots:
         raise ValueError(f"beat {beat.id}: add at least one shot")
     duration = beat.end - beat.start
-    active = duration - theme.tail
+    active = duration - (theme.tail if beat.hold is None else beat.hold)
     lengths = [minimum(s, theme) for s in beat.shots]
     required = sum(lengths)
     if required > active + 1e-8:

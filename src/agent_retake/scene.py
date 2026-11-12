@@ -24,6 +24,7 @@ class SafeBeat:
     start: float | None
     end: float | None
     shots: list[SafeShot]
+    hold: float | None = None
 
 
 @dataclass(frozen=True)
@@ -105,7 +106,7 @@ def prepare_scene(path, *, board=None, theme=None) -> SafeScene:
                 if mode == "condensed":
                     text = condensed(text)
                 shots.append(SafeShot(mode, owner.harness, text, highlights, role, excerpt))
-        beats.append(SafeBeat(beat.id, clean(beat.title), beat.start, beat.end, shots))
+        beats.append(SafeBeat(beat.id, clean(beat.title), beat.start, beat.end, shots, beat.hold))
     safe_theme = theme.model_copy(update={
         "font": clean(theme.font), "foreground": clean(theme.foreground), "background": clean(theme.background),
         "user_label": clean(theme.user_label),

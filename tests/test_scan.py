@@ -156,3 +156,12 @@ def test_user_label_is_scanned_and_sanitized(episode):
     beats, _, theme = compile_board(episode)
     assert secret not in page_html(beats[0][1], theme, controls=True)
     assert theme.user_label.startswith("editor-")
+
+
+def test_beat_hold_reaches_the_reviewed_scene(episode):
+    b = load_board(episode)
+    b.beats[0].hold = 6.5
+    save_board(b, episode)
+    scan_board(episode)
+    review_board(episode)
+    assert prepare_scene(episode).beats[0].hold == 6.5

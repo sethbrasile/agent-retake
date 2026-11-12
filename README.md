@@ -48,7 +48,7 @@ uv run retake preview "$episode/storyboard.yaml" --beat 1 --html
 uv run retake render "$episode/storyboard.yaml"
 ```
 
-The default window is 1920×1200 at 30 fps. Each clip opens with the earlier reviewed exchanges still visible above the composer. Older messages are dimmed and scroll up as new messages arrive. Each beat includes a two-second final hold within its duration. The CLI reports each output path. Import the ProRes 4444 clip above a background in Resolve and scrub the rounded edges to check the composite on your system.
+The default window is 1920×1200 at 30 fps. Each clip opens with the earlier reviewed exchanges still visible above the composer. Older messages are dimmed and scroll up as new messages arrive. Each beat includes a two-second final hold within its duration. Set a beat's `hold` in seconds to stream its shots faster and leave the finished text on screen longer. The CLI reports each output path. Import the ProRes 4444 clip above a background in Resolve and scrub the rounded edges to check the composite on your system.
 
 ## Storyboards and private data
 

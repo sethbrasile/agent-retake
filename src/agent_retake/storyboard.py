@@ -54,6 +54,7 @@ class Beat(Record):
     start: float | None = Field(default=None, ge=0, allow_inf_nan=False)
     end: float | None = Field(default=None, gt=0, allow_inf_nan=False)
     manual: bool = False
+    hold: float | None = Field(default=None, ge=0, allow_inf_nan=False)
     shots: list[Shot]
 
 
