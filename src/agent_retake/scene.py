@@ -108,6 +108,7 @@ def prepare_scene(path, *, board=None, theme=None) -> SafeScene:
         beats.append(SafeBeat(beat.id, clean(beat.title), beat.start, beat.end, shots))
     safe_theme = theme.model_copy(update={
         "font": clean(theme.font), "foreground": clean(theme.foreground), "background": clean(theme.background),
+        "user_label": clean(theme.user_label),
         "accents": {k: clean(v) for k, v in theme.accents.items()},
         "glyphs": {k: clean(v) for k, v in theme.glyphs.items()},
     })

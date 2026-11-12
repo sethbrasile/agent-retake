@@ -34,6 +34,7 @@ class Theme(Record):
     condensed_wpm: float = Field(default=250, gt=0, allow_inf_nan=False)
     burst_seconds: float = Field(default=1.5, gt=0, allow_inf_nan=False)
     tail: float = Field(default=2, ge=0, allow_inf_nan=False)
+    user_label: str = Field(default="You", min_length=1, max_length=40)
     accents: dict[Literal["claude", "codex", "pi", "grok"], str] = Field(default_factory=dict)
     glyphs: dict[Literal["claude", "codex", "pi", "grok"], str] = Field(default_factory=dict)
 

@@ -211,3 +211,25 @@ def test_excerpt_label_is_separate_from_source_words(timed):
         assert excerpt.locator(".edit-note").inner_text() == "Excerpt"
         assert whole.locator(".edit-note").count() == 0
         browser.close()
+
+
+def test_user_label_names_the_operator_in_current_and_prior_beats(timed):
+    from agent_retake.render.page import compile_board, page_html
+
+    (timed.parent / "retake.yaml").write_text("themes:\n  neutral:\n    user_label: Operator\n")
+    board = load_board(timed)
+    second = board.beats[0].model_copy(deep=True)
+    second.id, second.start, second.end = 2, 16.0, 32.0
+    board.beats.append(second)
+    save_board(board, timed)
+    scan_board(timed)
+    review_board(timed)
+    timelines, _, theme = compile_board(timed)
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch()
+        page = browser.new_page()
+        page.set_content(page_html(timelines[1][1], theme))
+        page.evaluate("t => seek(t)", timelines[1][1].duration)
+        labels = page.locator(".user-message .speaker").all_text_contents()
+        assert labels and set(labels) == {"Operator"}
+        browser.close()

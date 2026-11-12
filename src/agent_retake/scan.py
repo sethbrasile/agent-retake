@@ -85,7 +85,7 @@ def visible(board):
 
 
 def inventory(board, conv, theme):
-    strings = [*visible(board), theme.foreground, theme.background, theme.font,
+    strings = [*visible(board), theme.foreground, theme.background, theme.font, theme.user_label,
                *theme.glyphs.values(), *theme.accents.values()]
     for s in conv.sessions:
         strings.extend([s.cwd, s.id])

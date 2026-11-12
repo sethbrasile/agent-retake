@@ -138,3 +138,21 @@ def test_condensed_preserves_headers_lists_and_one_sentence_per_paragraph():
     from agent_retake.scene import condensed
     text = "**Outcome**\nWe tested\nthe idea. Another sentence.\n\n- A result. Extra.\n- B result."
     assert condensed(text) == "**Outcome**\nWe tested the idea.\n- A result.\n- B result."
+
+
+def test_user_label_is_scanned_and_sanitized(episode):
+    from agent_retake.render.page import compile_board, page_html
+    secret = "operator@invented.example"
+    scan_board(episode)
+    review_board(episode)
+    (episode.parent / "retake.yaml").write_text("themes:\n  neutral:\n    user_label: " + secret)
+    with pytest.raises(ValueError):
+        compile_board(episode)
+    scan_board(episode)
+    review_board(episode)
+    b = load_board(episode)
+    b.beats[0].start, b.beats[0].end = 0.0, 20.0
+    save_board(b, episode)
+    beats, _, theme = compile_board(episode)
+    assert secret not in page_html(beats[0][1], theme, controls=True)
+    assert theme.user_label.startswith("editor-")

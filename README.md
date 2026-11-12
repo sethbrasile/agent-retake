@@ -75,7 +75,7 @@ Each cue starts its beat at the matched word. The next cue ends the preceding be
 
 ## Configure an episode
 
-Put `retake.yaml` beside the storyboard. It supplies project defaults for the theme and output. Explicit storyboard fields override those defaults. The CLI's `--beat` selection limits which clips are exported. Set `output.shot` to the shot label your editor uses. The sample config sets the palette, font, dimensions and filename template. [Example configuration](examples/retake.yaml)
+Put `retake.yaml` beside the storyboard. It supplies project defaults for the theme and output. Explicit storyboard fields override those defaults. The CLI's `--beat` selection limits which clips are exported. Set `output.shot` to the shot label your editor uses. The sample config sets the palette, font, dimensions and filename template. A theme's `user_label` names the person behind user turns; it defaults to “You”. [Example configuration](examples/retake.yaml)
 
 Set `output.full_frame: true` to also export an opaque 3840×2160 DNxHR HQ MOV. `output.background` accepts a hex color or local PNG, JPEG or WebP path relative to the storyboard. Each render uses an available take number; it preserves existing clips. The transparent window is suitable for placement, scaling and transitions in the editor.
 

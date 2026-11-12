@@ -33,7 +33,7 @@ function messageLine(shot, value) {
     item.style.setProperty("--accent", palette[shot.harness]);
     const speaker = document.createElement("span");
     speaker.className = "speaker";
-    speaker.textContent = {user:"You", assistant:names[shot.harness], tool:"Tool"}[shot.role];
+    speaker.textContent = {user:theme.user_label, assistant:names[shot.harness], tool:"Tool"}[shot.role];
     const body = document.createElement("span");
     body.className = "message-text";
     appendHighlighted(body, value, shot.highlights);
